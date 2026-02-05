@@ -1,0 +1,77 @@
+name: Pipeline CI/CD Portfólio
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Verify Index
+        run: |
+          if [ ! -f "index.html" ]; then
+            exit 1
+          fi
+
+      - name: File Size Check
+        run: |
+          LARGE_FILES=$(find . -type f -not -path '*/.*' -size +500k)
+          if [ ! -z "$LARGE_FILES" ]; then
+            exit 1
+          fi
+
+      - name: Text Scan
+        run: |
+          if grep -rEi "TODO|FIXME|senha|password" . --exclude-dir=.git; then
+            exit 1
+          fi
+
+      - name: Linter
+        run: |
+          npm install -g html-validate
+          html-validate index.html
+
+  deploy:
+    needs: lint-and-validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  notify:
+    needs: [lint-and-validate, deploy]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Failure Notification
+        run: echo "Pipeline failed"
