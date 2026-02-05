@@ -44,7 +44,7 @@ jobs:
 
       - name: Scan Prohibited Terms
         run: |
-          if grep -rEi "TODO|FIXME|senha|password" . --exclude-dir=.git; then
+          if grep -rEi "TODO|FIXME|senha|password" . --exclude-dir={.git,.github}; then
             echo "Erro: Foram encontrados termos proibidos ou comentarios pendentes."
             exit 1
           fi
