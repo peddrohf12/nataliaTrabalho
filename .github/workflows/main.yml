@@ -1,4 +1,4 @@
-name: Pipeline CI/CD Portfólio
+name: Pipeline CI/CD Portfolio
 
 on:
   pull_request:
@@ -19,7 +19,7 @@ jobs:
         node-version: [18, 20]
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Node.js ${{ matrix.node-version }}
@@ -27,9 +27,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Verify Index
+      - name: Verify Index.html
         run: |
           if [ ! -f "index.html" ]; then
+            echo "Erro: arquivo index.html nao encontrado na raiz."
             exit 1
           fi
 
@@ -37,16 +38,18 @@ jobs:
         run: |
           LARGE_FILES=$(find . -type f -not -path '*/.*' -size +500k)
           if [ ! -z "$LARGE_FILES" ]; then
+            echo "Erro: Arquivos maiores que 500KB encontrados: $LARGE_FILES"
             exit 1
           fi
 
-      - name: Text Scan
+      - name: Scan Prohibited Terms
         run: |
           if grep -rEi "TODO|FIXME|senha|password" . --exclude-dir=.git; then
+            echo "Erro: Foram encontrados termos proibidos ou comentarios pendentes."
             exit 1
           fi
 
-      - name: Linter
+      - name: Run Linter
         run: |
           npm install -g html-validate
           html-validate index.html
@@ -60,11 +63,11 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v4
-      - name: Upload
+      - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
-      - name: Deploy
+      - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
@@ -73,5 +76,5 @@ jobs:
     if: failure()
     runs-on: ubuntu-latest
     steps:
-      - name: Failure Notification
-        run: echo "Pipeline failed"
+      - name: Send Notification
+        run: echo "A pipeline falhou. Verifique os logs na aba Actions."
